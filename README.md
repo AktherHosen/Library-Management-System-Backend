@@ -26,6 +26,8 @@ library-management-system-backend/
 │ │ ├── interfaces/
 │ │ │ ├── book.interfaces.ts
 │ │ │ └── borrow.interfaces.ts
+│ │ ├── middlewares/
+│ │ │ ├── globalErrorHandler.ts
 │ ├── app.ts
 │ └── server.ts
 ├── package.json
