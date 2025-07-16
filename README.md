@@ -7,7 +7,7 @@ A Library Management System built with **Express**, **TypeScript**, and **MongoD
 - Create, Read, Update, Delete (CRUD) operations for books
 - Borrow books with availability enforcement
 - Aggregation summary of borrowed books
-- Schema validation using Mongoose and Zod
+- Schema validation using Mongoose
 - Static methods and middleware (pre and post) in Mongoose
 - Filtering, sorting, and limit support for listing books
 
