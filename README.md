@@ -9,7 +9,7 @@ A Library Management System built with **Express**, **TypeScript**, and **MongoD
 - Aggregation summary of borrowed books
 - Schema validation using Mongoose and Zod
 - Static methods and middleware (pre/post) in Mongoose
-- Filtering, sorting, and pagination support for listing books
+- Filtering, sorting, and limit support for listing books
 
 ## Folder Structure
 
