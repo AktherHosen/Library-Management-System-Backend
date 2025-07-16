@@ -24,7 +24,7 @@ borrowSchema.static(
     const book = await Books.findById(bookId);
 
     if (!book) {
-      throw new Error("Product not found");
+      throw new Error("Book not found");
     }
 
     if (book.copies < quantity) {
