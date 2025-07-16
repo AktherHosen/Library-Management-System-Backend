@@ -1,60 +1,70 @@
 import express, { Request, Response } from "express";
-import { z } from "zod";
 
 import { Books } from "../models/books.model";
 import { Borrow } from "../models/borrow.model";
 
 export const borrowRoutes = express.Router();
 
-const BorrowBookZodSchema = z.object({
-  book: z.string(),
-  quantity: z
-    .number()
-    .int({ message: "Copies must be a positive number" })
-    .min(1, { message: "Copies must be at least 1" }),
-  dueDate: z.coerce.date({
-    message: "Due date must be a valid date",
-  }),
-});
-
+// Borrow Books
 borrowRoutes.post("/", async (req: Request, res: Response) => {
   try {
-    const zodBody = await BorrowBookZodSchema.parseAsync(req.body);
-    const { book: bookId, quantity } = zodBody;
+    const { book: bookId, quantity, dueDate } = req.body;
 
-    const findingBook = await Books.findById(bookId);
-    if (!findingBook) {
-      res.status(404).json({
-        status: false,
-        message: "Book not found",
+    if (!bookId || !quantity || !dueDate) {
+      return res.status(400).json({
+        success: false,
+        message: "book, quantity, and dueDate fields are required",
       });
     }
 
-    if (findingBook?.copies! < quantity) {
-      res.status(404).json({
-        status: false,
+    const book = await Books.findById(bookId);
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: "Book not found",
+        error: "No book exists with the provided ID",
+      });
+    }
+
+    if (book.copies < quantity) {
+      return res.status(400).json({
+        success: false,
         message: "Not enough copies available",
+        error: `Only ${book.copies} copies available`,
       });
     }
 
     await Borrow.updateAvailability(bookId, quantity);
 
-    const data = await Borrow.create(req.body);
+    const borrowData = await Borrow.create({
+      book: bookId,
+      quantity,
+      dueDate,
+    });
 
-    res.status(201).json({
-      status: true,
+    return res.status(201).json({
+      success: true,
       message: "Book borrowed successfully",
-      data,
+      data: borrowData,
     });
   } catch (error: any) {
-    res.status(400).json({
-      message: "Validation failed",
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        message: "Validation failed",
+        success: false,
+        error: error,
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to borrow book",
       success: false,
-      error: error,
+      error,
     });
   }
 });
 
+// Borrowed books summary via aggregation pipelines
 borrowRoutes.get("/", async (req: Request, res: Response) => {
   try {
     const borrowedBooksSummary = await Borrow.aggregate([
@@ -72,9 +82,7 @@ borrowRoutes.get("/", async (req: Request, res: Response) => {
           as: "book",
         },
       },
-      {
-        $unwind: "$book",
-      },
+      { $unwind: "$book" },
       {
         $project: {
           _id: 0,
@@ -87,16 +95,16 @@ borrowRoutes.get("/", async (req: Request, res: Response) => {
       },
     ]);
 
-    res.status(200).json({
-      status: true,
+    return res.status(200).json({
+      success: true,
       message: "Borrowed books summary retrieved successfully",
       data: borrowedBooksSummary,
     });
-  } catch (error: any) {
-    res.status(500).json({
+  } catch (error) {
+    return res.status(500).json({
       success: false,
       message: "Failed to retrieve borrowed books summary",
-      error: error,
+      error,
     });
   }
 });

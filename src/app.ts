@@ -2,6 +2,7 @@ import express, { Application, NextFunction, Request, Response } from "express";
 
 import { booksRoutes } from "./app/controllers/books.controller";
 import { borrowRoutes } from "./app/controllers/borrow.controller";
+import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 const app: Application = express();
 
 app.use(express.json());
@@ -18,5 +19,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     message: "Route not found",
   });
 });
+
+app.use(globalErrorHandler);
 
 export default app;

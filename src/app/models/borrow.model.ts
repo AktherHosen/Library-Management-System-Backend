@@ -5,7 +5,11 @@ import { Books } from "./books.model";
 const borrowSchema = new Schema<IBorrow, BookStaticMethods>(
   {
     book: { type: Schema.Types.ObjectId, ref: "Books", required: true },
-    quantity: { type: Number, required: true, min: 1 },
+    quantity: {
+      type: Number,
+      required: true,
+      min: [1, "Must be an positive integer"],
+    },
     dueDate: { type: Date, required: true },
   },
   {

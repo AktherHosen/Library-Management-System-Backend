@@ -1,31 +1,28 @@
 import express, { Request, Response } from "express";
-import { z } from "zod";
 import { Books } from "../models/books.model";
 
 export const booksRoutes = express.Router();
 
-const CreateBookZodSchema = z.object({
-  title: z.string(),
-  author: z.string(),
-  genre: z.string(),
-  isbn: z.string(),
-  description: z.string().optional(),
-  copies: z.number(),
-  available: z.boolean(),
-});
-
-// Create New Books
+// Create a book
 booksRoutes.post("/", async (req: Request, res: Response) => {
   try {
-    const zodBody = await CreateBookZodSchema.parseAsync(req.body);
-    const data = await Books.create(zodBody);
-    res.status(201).json({
+    const data = await Books.create(req.body);
+
+    return res.status(201).json({
       success: true,
-      message: "Books created successfully",
+      message: "Book created successfully",
       data,
     });
   } catch (error: any) {
-    res.status(400).json({
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        message: "Validation failed",
+        success: false,
+        error: error,
+      });
+    }
+
+    return res.status(500).json({
       message: "Failed to create book",
       success: false,
       error,
@@ -33,106 +30,127 @@ booksRoutes.post("/", async (req: Request, res: Response) => {
   }
 });
 
+// Get all books (with filtering, sorting, limit)
 booksRoutes.get("/", async (req: Request, res: Response) => {
   try {
     const genre = req.query.filter as string;
     const sortBy = req.query.sortBy as string;
-    const sort = req.query.sort as string;
-    const limitBooks = (req.query.limit as string) || "10";
+    const sort = (req.query.sort as string) || "asc";
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
 
-    let query = Books.find();
+    const sortOrder = sort === "desc" ? -1 : 1;
 
-    if (genre) {
-      query = Books.find({ genre });
-    }
-
-    if (sortBy && sort) {
-      const sortOption: { [key: string]: any } = {};
-      sortOption[sortBy] = sort === "desc" ? -1 : 1;
-      query = query.sort(sortOption);
-    }
-
-    if (limitBooks) {
-      query = query.limit(parseInt(limitBooks));
-    }
+    const query = Books.find(genre ? { genre } : {})
+      .sort(sortBy ? { [sortBy]: sortOrder } : {})
+      .limit(limit);
 
     const books = await query;
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Books retrieved successfully",
       data: books,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      message: "Failed to retrieve books",
+  } catch (error) {
+    return res.status(500).json({
       success: false,
+      message: "Failed to retrieve books",
       error,
     });
   }
 });
 
+// Get book by ID
 booksRoutes.get("/:bookId", async (req: Request, res: Response) => {
   try {
     const bookId = req.params.bookId;
     const data = await Books.findById(bookId);
 
     if (!data) {
-      res.status(404).json({
-        status: false,
-        message: "Failed to retrive books",
+      return res.status(404).json({
+        success: false,
+        message: "Book not found",
       });
     }
 
-    res.status(201).json({
-      status: true,
-      message: "Books retrieved successfully",
+    return res.status(200).json({
+      success: true,
+      message: "Book retrieved successfully",
       data,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      message: "Failed to retrieve books",
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to retrieve book",
       success: false,
       error,
     });
   }
 });
 
+// Update a book
 booksRoutes.patch("/:bookId", async (req: Request, res: Response) => {
-  const bookId = req.params.bookId;
-  const body = req.body;
+  try {
+    const bookId = req.params.bookId;
 
-  const book = await Books.findById(bookId);
-  if (!book) {
-    res.status(404).json({
+    const book = await Books.findById(bookId);
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: "Book not found",
+      });
+    }
+
+    const data = await Books.findByIdAndUpdate(bookId, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Book updated successfully",
+      data,
+    });
+  } catch (error: any) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        message: "Validation failed",
+        success: false,
+        error: error,
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message: "Books not found",
+      message: "Failed to update book",
+      error,
     });
   }
-
-  const data = await Books.findByIdAndUpdate(bookId, body, { new: true });
-
-  res.status(201).json({
-    success: true,
-    message: "Books updated successfully",
-    data,
-  });
 });
 
+// Delete a book
 booksRoutes.delete("/:bookId", async (req: Request, res: Response) => {
-  const bookId = req.params.bookId;
-  const data = await Books.findOneAndDelete({ _id: bookId });
+  try {
+    const bookId = req.params.bookId;
 
-  if (!data) {
-    res.status(404).json({
+    const data = await Books.findByIdAndDelete(bookId);
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Book not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Book deleted successfully",
+      data: null,
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Books not found",
+      message: "Failed to delete book",
+      error,
     });
   }
-
-  res.status(201).json({
-    success: true,
-    messaage: "Books deleted successfully",
-    data: null,
-  });
 });

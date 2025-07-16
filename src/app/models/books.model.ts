@@ -19,7 +19,11 @@ const bookSchema = new Schema<IBooks>(
     },
     isbn: { type: String, unique: true, required: true },
     description: { type: String },
-    copies: { type: Number, min: 0, required: true },
+    copies: {
+      type: Number,
+      min: [0, "Copies must be a positive number"],
+      required: true,
+    },
     available: { type: Boolean, default: true },
   },
   {

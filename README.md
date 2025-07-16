@@ -121,7 +121,6 @@ GET /api/borrow
 - Mongoose
 - TypeScript
 - Aggregation Pipleline
-- Zod Validation
 
 ## Installation
 
