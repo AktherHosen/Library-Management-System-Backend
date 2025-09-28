@@ -30,26 +30,37 @@ booksRoutes.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get all books (with filtering, sorting, limit)
+// Get all books (with filtering, sorting, limit, pagination)
 booksRoutes.get("/", async (req: Request, res: Response) => {
   try {
     const genre = req.query.filter as string;
     const sortBy = req.query.sortBy as string;
     const sort = (req.query.sort as string) || "asc";
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 4;
+    const skip = (page - 1) * limit;
 
     const sortOrder = sort === "desc" ? -1 : 1;
+    const filter = genre ? { genre } : {};
 
-    const query = Books.find(genre ? { genre } : {})
-      .sort(sortBy ? { [sortBy]: sortOrder } : {})
-      .limit(limit);
-
-    const books = await query;
+    const [books, total] = await Promise.all([
+      Books.find(filter)
+        .sort(sortBy ? { [sortBy]: sortOrder } : {})
+        .skip(skip)
+        .limit(limit),
+      Books.countDocuments(filter),
+    ]);
 
     return res.status(200).json({
       success: true,
       message: "Books retrieved successfully",
       data: books,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -88,7 +99,7 @@ booksRoutes.get("/:bookId", async (req: Request, res: Response) => {
 });
 
 // Update a book
-booksRoutes.patch("/:bookId", async (req: Request, res: Response) => {
+booksRoutes.put("/:bookId", async (req: Request, res: Response) => {
   try {
     const bookId = req.params.bookId;
 

@@ -65,8 +65,13 @@ borrowRoutes.post("/", async (req: Request, res: Response) => {
 });
 
 // Borrowed books summary via aggregation pipelines
+
 borrowRoutes.get("/", async (req: Request, res: Response) => {
   try {
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const skip = (page - 1) * limit;
+
     const borrowedBooksSummary = await Borrow.aggregate([
       {
         $group: {
@@ -93,12 +98,31 @@ borrowRoutes.get("/", async (req: Request, res: Response) => {
           totalQuantity: 1,
         },
       },
+      { $skip: skip },
+      { $limit: limit },
     ]);
+
+    const total = await Borrow.aggregate([
+      {
+        $group: {
+          _id: "$book",
+        },
+      },
+      { $count: "total" },
+    ]);
+
+    const totalCount = total.length > 0 ? total[0].total : 0;
 
     return res.status(200).json({
       success: true,
       message: "Borrowed books summary retrieved successfully",
       data: borrowedBooksSummary,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     });
   } catch (error) {
     return res.status(500).json({
