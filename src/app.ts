@@ -4,12 +4,12 @@ import { booksRoutes } from "./app/controllers/books.controller";
 import { borrowRoutes } from "./app/controllers/borrow.controller";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 const app: Application = express();
-import cors from "cors"
 
 app.use(express.json());
+const cors = require("cors");
 app.use(
   cors({
-    origin: ["https://library-management-system-iota-mauve.vercel.app"],
+    origin: ["https://library-management-system-iota-mauve.vercel.app/"],
   })
 );
 
