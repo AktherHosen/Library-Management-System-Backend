@@ -69,9 +69,10 @@ borrowRoutes.post("/", async (req: Request, res: Response) => {
 borrowRoutes.get("/", async (req: Request, res: Response) => {
   try {
     const page = req.query.page ? parseInt(req.query.page as string) : 1;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 4;
     const skip = (page - 1) * limit;
 
+    // Aggregate borrowed books summary
     const borrowedBooksSummary = await Borrow.aggregate([
       {
         $group: {
@@ -90,7 +91,7 @@ borrowRoutes.get("/", async (req: Request, res: Response) => {
       { $unwind: "$book" },
       {
         $project: {
-          _id: 0,
+          bookId: "$_id",
           book: {
             title: "$book.title",
             isbn: "$book.isbn",
@@ -102,16 +103,13 @@ borrowRoutes.get("/", async (req: Request, res: Response) => {
       { $limit: limit },
     ]);
 
-    const total = await Borrow.aggregate([
-      {
-        $group: {
-          _id: "$book",
-        },
-      },
+    const totalDistinctBooks = await Borrow.aggregate([
+      { $group: { _id: "$book" } },
       { $count: "total" },
     ]);
 
-    const totalCount = total.length > 0 ? total[0].total : 0;
+    const totalCount =
+      totalDistinctBooks.length > 0 ? totalDistinctBooks[0].total : 0;
 
     return res.status(200).json({
       success: true,
