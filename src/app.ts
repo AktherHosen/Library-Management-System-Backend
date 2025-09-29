@@ -1,17 +1,17 @@
 import express, { Application, NextFunction, Request, Response } from "express";
 
+import cors from "cors";
 import { booksRoutes } from "./app/controllers/books.controller";
 import { borrowRoutes } from "./app/controllers/borrow.controller";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 const app: Application = express();
 
 app.use(express.json());
-const cors = require("cors");
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
       "https://library-management-system-iota-mauve.vercel.app",
+      // "http://localhost:5173",
     ],
   })
 );
